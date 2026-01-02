@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mock Aadhaar Firestore</title>
+</head>
+<body>
+
+<h2>Store Mock Aadhaar Data</h2>
+
+<input type="text" id="name" placeholder="Name"><br><br>
+<input type="text" id="aadhaar" placeholder="12-digit Aadhaar"><br><br>
+<input type="date" id="dob"><br><br>
+<input type="text" id="gender" placeholder="Gender"><br><br>
+<input type="text" id="mobile" placeholder="Mobile"><br><br>
+
+<button id="storeBtn">Store Data</button>
+
+<p id="msg"></p>
+
+<script type="module">
+  // 🔹 Firebase imports
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+  import { getFirestore, collection, addDoc }
+    from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+
+  // 🔹 Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyDJ-iCuBKjDJqFfHbVY9DRx73OPzTG1CYA",
+    authDomain: "aadhaar-verification-448b8.firebaseapp.com",
+    projectId: "aadhaar-verification-448b8",
+    storageBucket: "aadhaar-verification-448b8.firebasestorage.app",
+    messagingSenderId: "266394818462",
+    appId: "1:266394818462:web:9e0f8434e37b357e86a88f"
+  };
+
+  // 🔹 Init Firebase
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // 🔐 SHA-256 hash function
+  async function hashAadhaar(aadhaar) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(aadhaar);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  // 🔹 Store data
+  document.getElementById("storeBtn").addEventListener("click", async () => {
+    try {
+      const name = document.getElementById("name").value;
+      const aadhaar = document.getElementById("aadhaar").value;
+      const dob = document.getElementById("dob").value;
+      const gender = document.getElementById("gender").value;
+      const mobile = document.getElementById("mobile").value;
+
+      // ✅ Validation
+      if (aadhaar.length !== 12) {
+        document.getElementById("msg").innerText =
+          "❌ Aadhaar must be 12 digits";
+        return;
+      }
+
+      const aadhaar_last4 = aadhaar.slice(-4);
+      const aadhaar_hash = await hashAadhaar(aadhaar);
+
+      await addDoc(collection(db, "mock_aadhaar_users"), {
+        aadhaar_hash: aadhaar_hash,
+        aadhaar_last4: aadhaar_last4,
+        consent: true,
+        data_type: "MOCK",
+        dob: dob,
+        gender: gender,
+        mobile: mobile,
+        name: name,
+        verified: false
+      });
+
+      document.getElementById("msg").innerText =
+        "✅ Aadhaar stored securely (hashed)";
+
+      // 🔐 Clear Aadhaar field immediately
+      document.getElementById("aadhaar").value = "";
+
+    } catch (error) {
+      document.getElementById("msg").innerText =
+        "❌ Error: " + error.message;
+    }
+  });
+</script>
+
+</body>
+</html>
