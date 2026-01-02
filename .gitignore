@@ -41,7 +41,7 @@ firebase_config.json
 .env.example
 .env
 .env.local
-
+firebase_env_value.txt
 # Images
 *.jpg
 *.jpeg
