@@ -38,6 +38,7 @@ firebase_config.json
 *-firebase-adminsdk-*.json
 
 # Environment variables
+.env.example
 .env
 .env.local
 

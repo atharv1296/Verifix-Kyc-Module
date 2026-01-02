@@ -9,12 +9,29 @@ cred = None
 db = None
 
 def initialize_firebase():
-    """Initialize Firebase Admin SDK"""
+    """Initialize Firebase Admin SDK from environment variables or config file"""
     global cred, db
     
     if not firebase_admin._apps:
-        # Check if firebase_config.json exists
-        if os.path.exists('firebase_config.json'):
+        # Method 1: Try to load from environment variables (for Render/Production)
+        firebase_creds_json = os.getenv('FIREBASE_CREDENTIALS')
+        
+        if firebase_creds_json:
+            try:
+                # Parse JSON from environment variable
+                config = json.loads(firebase_creds_json)
+                cred = credentials.Certificate(config)
+                firebase_admin.initialize_app(cred)
+                db = firestore.client()
+                print("✅ Firebase initialized successfully from environment variables")
+                return True
+            except Exception as e:
+                print(f"⚠️  Error loading Firebase from environment: {str(e)}")
+                print("   → App will run in TEST MODE (verification disabled)")
+                return False
+        
+        # Method 2: Try to load from firebase_config.json (for local development)
+        elif os.path.exists('firebase_config.json'):
             try:
                 # Try to load and validate the config first
                 with open('firebase_config.json', 'r') as f:
@@ -31,7 +48,7 @@ def initialize_firebase():
                 cred = credentials.Certificate('firebase_config.json')
                 firebase_admin.initialize_app(cred)
                 db = firestore.client()
-                print("✅ Firebase initialized successfully")
+                print("✅ Firebase initialized successfully from config file")
                 return True
             except ValueError as e:
                 print(f"⚠️  Firebase initialization failed: {str(e)}")
@@ -43,8 +60,9 @@ def initialize_firebase():
                 print("   → App will run in TEST MODE (verification disabled)")
                 return False
         else:
-            print("⚠️  firebase_config.json not found.")
-            print("   → Download service account key from Firebase Console")
+            print("⚠️  No Firebase credentials found.")
+            print("   → Set FIREBASE_CREDENTIALS environment variable (production)")
+            print("   → OR add firebase_config.json file (local development)")
             print("   → App will run in TEST MODE (verification disabled)")
             return False
     else:
